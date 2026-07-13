@@ -1,0 +1,7 @@
+project_id = "dshmaxcfnnplamzbrflw"
+
+[functions.create-collaboration-payment]
+verify_jwt = false
+
+[functions.verify-collaboration-payment]
+verify_jwt = false
