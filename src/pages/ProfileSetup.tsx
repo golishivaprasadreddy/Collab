@@ -1,57 +1,32 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { SkillBadge } from "@/components/ui/skill-badge";
 import { Slider } from "@/components/ui/slider";
 import { AvatarUpload } from "@/components/AvatarUpload";
-import {
-  Building2,
-  GraduationCap,
-  ChevronRight,
-  ChevronLeft,
-  Check,
-  IndianRupee,
-  Loader2,
-  Plus,
-  Github,
-} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateProfile, useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/contexts/AuthContext";
+import { Check, Loader2, Plus, X } from "lucide-react";
 
-const availableSkills = [
+const commonSkills = [
   "React",
+  "Next.js",
+  "TypeScript",
   "Python",
-  "UI/UX Design",
-  "Machine Learning",
   "Node.js",
+  "Figma",
+  "UI/UX Design",
+  "Tailwind CSS",
   "Flutter",
+  "Machine Learning",
   "Data Science",
-  "Marketing",
-  "Video Editing",
-  "Photography",
-  "Content Writing",
-  "Graphic Design",
-  "Project Management",
-  "Public Speaking",
-  "Blockchain",
-  "iOS Development",
-];
-
-const availabilityOptions = [
-  { id: "learning", label: "Learning collaboration", icon: "📚", earning: false },
-  { id: "project", label: "Project collaboration", icon: "💼", earning: false },
-  { id: "paid", label: "Paid collaboration", icon: "💰", earning: true },
-];
-
-const interestOptions = [
-  { id: "startups", label: "Startups", icon: "🚀" },
-  { id: "hackathons", label: "Hackathons", icon: "⚡" },
-  { id: "college", label: "College projects", icon: "🎓" },
+  "PostgreSQL",
+  "GraphQL",
+  "C++",
+  "Java",
+  "Swift",
 ];
 
 export default function ProfileSetup() {
@@ -60,10 +35,11 @@ export default function ProfileSetup() {
   const { user } = useAuth();
   const { data: existingProfile } = useProfile();
   const updateProfile = useUpdateProfile();
-  
+
   const [step, setStep] = useState(1);
-  const [customSkill, setCustomSkill] = useState("");
-  const [allSkills, setAllSkills] = useState<string[]>(availableSkills);
+  const [customSkillInput, setCustomSkillInput] = useState("");
+  const [allSkills, setAllSkills] = useState<string[]>(commonSkills);
+
   const [formData, setFormData] = useState({
     avatar: "",
     bio: existingProfile?.bio || "",
@@ -78,71 +54,46 @@ export default function ProfileSetup() {
     githubUrl: existingProfile?.github_url || "",
   });
 
-  const addCustomSkill = () => {
-    const trimmed = customSkill.trim();
-    if (trimmed && !allSkills.includes(trimmed)) {
-      setAllSkills([...allSkills, trimmed]);
+  const handleAddSkill = (skillName: string) => {
+    const trimmed = skillName.trim();
+    if (!trimmed) return;
+
+    if (!formData.skills.some((s) => s.name.toLowerCase() === trimmed.toLowerCase())) {
       setFormData({
         ...formData,
-        skills: [...formData.skills, { name: trimmed, level: "Intermediate" as const }],
+        skills: [...formData.skills, { name: trimmed, level: "Intermediate" }],
       });
-      setCustomSkill("");
-    } else if (trimmed && allSkills.includes(trimmed)) {
-      // If skill exists, just select it
-      toggleSkill(trimmed);
-      setCustomSkill("");
+      if (!allSkills.includes(trimmed)) {
+        setAllSkills([...allSkills, trimmed]);
+      }
     }
+    setCustomSkillInput("");
   };
 
-  const toggleSkill = (skillName: string) => {
-    const existing = formData.skills.find((s) => s.name === skillName);
-    if (existing) {
-      setFormData({
-        ...formData,
-        skills: formData.skills.filter((s) => s.name !== skillName),
-      });
-    } else {
-      setFormData({
-        ...formData,
-        skills: [
-          ...formData.skills,
-          { name: skillName, level: "Intermediate" as const },
-        ],
-      });
-    }
-  };
-
-  const updateSkillLevel = (
-    skillName: string,
-    level: "Beginner" | "Intermediate" | "Advanced"
-  ) => {
+  const handleRemoveSkill = (skillName: string) => {
     setFormData({
       ...formData,
-      skills: formData.skills.map((s) =>
-        s.name === skillName ? { ...s, level } : s
-      ),
+      skills: formData.skills.filter((s) => s.name !== skillName),
     });
   };
 
-  const toggleArrayItem = (
-    key: "availability" | "interests",
-    item: string
-  ) => {
-    const array = formData[key];
-    if (array.includes(item)) {
-      setFormData({
-        ...formData,
-        [key]: array.filter((i) => i !== item),
-      });
+  const handleLevelChange = (skillName: string, level: "Beginner" | "Intermediate" | "Advanced") => {
+    setFormData({
+      ...formData,
+      skills: formData.skills.map((s) => (s.name === skillName ? { ...s, level } : s)),
+    });
+  };
+
+  const toggleOption = (key: "availability" | "interests", item: string) => {
+    const list = formData[key];
+    if (list.includes(item)) {
+      setFormData({ ...formData, [key]: list.filter((i) => i !== item) });
     } else {
-      setFormData({
-        ...formData,
-        [key]: [...array, item],
-      });
+      setFormData({ ...formData, [key]: [...list, item] });
     }
   };
 
-  const handleFinish = async () => {
+  const handleSaveProfile = async () => {
     try {
       await updateProfile.mutateAsync({
         profile: {
@@ -170,14 +121,14 @@ export default function ProfileSetup() {
       });
 
       toast({
-        title: "Profile complete! 🎉",
-        description: "Start discovering collaborators now.",
+        title: "Profile saved",
+        description: "Your profile is set up and ready.",
       });
       navigate("/home");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to save profile";
+      const message = error instanceof Error ? error.message : "Could not save profile";
       toast({
-        title: "Failed to save profile",
+        title: "Error saving profile",
         description: message,
         variant: "destructive",
       });
@@ -185,67 +136,94 @@ export default function ProfileSetup() {
   };
 
   const canProceed = () => {
-    switch (step) {
-      case 1:
-        return formData.fullName && formData.college;
-      case 2:
-        return formData.skills.length > 0;
-      case 3:
-        return formData.availability.length > 0;
-      default:
-        return true;
-    }
+    if (step === 1) return formData.fullName.trim() !== "" && formData.college.trim() !== "";
+    if (step === 2) return formData.skills.length > 0;
+    if (step === 3) return formData.availability.length > 0;
+    return true;
   };
 
-  const isPaidEnabled = formData.availability.includes("paid");
+  const isPaidSelected = formData.availability.includes("paid");
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Progress bar */}
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          {step > 1 && (
-            <button
-              onClick={() => setStep(step - 1)}
-              className="h-10 w-10 rounded-xl flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-          )}
-          <span className="text-sm text-muted-foreground ml-auto">
-            Step {step} of 3
-          </span>
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between">
+      
+      {/* Calm, Clean Top Header */}
+      <header className="border-b border-border bg-card/50">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div>
+            <span className="font-semibold text-sm tracking-tight">Collab.io</span>
+            <span className="text-muted-foreground text-xs ml-2">Profile Setup</span>
+          </div>
+          <button
+            onClick={() => navigate("/home")}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Skip for now &rarr;
+          </button>
         </div>
-        <div className="h-1 bg-muted rounded-full overflow-hidden">
-          <motion.div
-            className="h-full gradient-primary"
-            initial={{ width: 0 }}
-            animate={{ width: `${(step / 3) * 100}%` }}
-          />
-        </div>
-      </div>
+      </header>
 
-      <div className="flex-1 px-6 py-4 overflow-y-auto">
-        <AnimatePresence mode="wait">
+      {/* Main Layout Container */}
+      <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-10 lg:py-14 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+        
+        {/* Left Rail: Quiet, Pragmatic Step Navigation */}
+        <aside className="lg:col-span-4 space-y-6">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">Setup your profile</h1>
+            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+              Fill out your basic info and skills so teammates and project leaders across your campus know what you build.
+            </p>
+          </div>
+
+          <nav className="space-y-1 pt-4 border-t border-border/80">
+            {[
+              { id: 1, label: "General details", desc: "Name, college & bio" },
+              { id: 2, label: "Skills & proficiency", desc: "Technologies you use" },
+              { id: 3, label: "Preferences & rates", desc: "Projects and availability" },
+            ].map((item) => {
+              const isActive = step === item.id;
+              const isDone = step > item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    if (isDone || isActive) setStep(item.id);
+                  }}
+                  className={`w-full text-left py-2.5 px-3 rounded-lg flex items-start justify-between transition-colors ${
+                    isActive
+                      ? "bg-muted font-medium text-foreground"
+                      : isDone
+                      ? "text-foreground hover:bg-muted/50 cursor-pointer"
+                      : "text-muted-foreground opacity-60 cursor-not-allowed"
+                  }`}
+                >
+                  <div>
+                    <div className="text-sm flex items-center gap-2">
+                      <span>{item.label}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                  </div>
+                  {isDone && <Check className="h-4 w-4 text-emerald-600 mt-1 flex-shrink-0" />}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* Right Area: Clean, Natural Form Without Icon Overload */}
+        <div className="lg:col-span-8 bg-card sm:border sm:border-border sm:rounded-2xl sm:p-8 sm:shadow-xs space-y-8">
+          
+          {/* STEP 1: GENERAL DETAILS */}
           {step === 1 && (
-            <motion.div
-              key="step1"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="space-y-6"
-            >
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-foreground">
-                  Basic Details
-                </h2>
-                <p className="text-muted-foreground mt-1">
-                  Let others know who you are
-                </p>
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="border-b border-border/60 pb-4">
+                <h2 className="text-base font-semibold">General details</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Your name and college will be visible on your public card.</p>
               </div>
 
-              {/* Avatar upload */}
-              <div className="flex justify-center">
+              {/* Avatar Upload Box */}
+              <div className="flex items-center gap-5">
                 {user?.id && (
                   <AvatarUpload
                     userId={user.id}
@@ -255,357 +233,339 @@ export default function ProfileSetup() {
                     size="lg"
                   />
                 )}
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    placeholder="Your full name"
-                    className="h-12"
-                    value={formData.fullName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, fullName: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="college">College / University</Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="college"
-                      placeholder="Your college name"
-                      className="pl-11 h-12"
-                      value={formData.college}
-                      onChange={(e) =>
-                        setFormData({ ...formData, college: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="degree">Degree</Label>
-                    <div className="relative">
-                      <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                      <Input
-                        id="degree"
-                        placeholder="e.g., B.Tech"
-                        className="pl-11 h-12"
-                        value={formData.degree}
-                        onChange={(e) =>
-                          setFormData({ ...formData, degree: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="year">Year</Label>
-                    <Input
-                      id="year"
-                      placeholder="e.g., 3rd"
-                      className="h-12"
-                      value={formData.year}
-                      onChange={(e) =>
-                        setFormData({ ...formData, year: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="githubUrl">GitHub Profile</Label>
-                  <div className="relative">
-                    <Github className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="githubUrl"
-                      placeholder="https://github.com/username"
-                      className="pl-11 h-12"
-                      value={formData.githubUrl}
-                      onChange={(e) =>
-                        setFormData({ ...formData, githubUrl: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bio">About You</Label>
-                  <Textarea
-                    id="bio"
-                    placeholder="Tell others a bit about yourself, your interests, and what you're looking for..."
-                    className="min-h-[100px] resize-none"
-                    value={formData.bio}
-                    onChange={(e) =>
-                      setFormData({ ...formData, bio: e.target.value })
-                    }
-                    maxLength={300}
-                  />
-                  <p className="text-xs text-muted-foreground text-right">
-                    {formData.bio.length}/300
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Profile photo</p>
+                  <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
+                    We recommend a clear photo of your face or a familiar avatar. JPG or PNG under 5MB.
                   </p>
                 </div>
               </div>
-            </motion.div>
+
+              <div className="space-y-4 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">Full name *</label>
+                    <Input
+                      placeholder="e.g. Rahul Varma"
+                      value={formData.fullName}
+                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                      className="h-10 text-sm bg-background"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">College or university *</label>
+                    <Input
+                      placeholder="e.g. IIT Bombay or BITS Pilani"
+                      value={formData.college}
+                      onChange={(e) => setFormData({ ...formData, college: e.target.value })}
+                      className="h-10 text-sm bg-background"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">Degree / Major</label>
+                    <Input
+                      placeholder="e.g. B.Tech Computer Science"
+                      value={formData.degree}
+                      onChange={(e) => setFormData({ ...formData, degree: e.target.value })}
+                      className="h-10 text-sm bg-background"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-foreground">Graduation year / Class</label>
+                    <Input
+                      placeholder="e.g. 3rd Year or 2027"
+                      value={formData.year}
+                      onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                      className="h-10 text-sm bg-background"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">GitHub profile URL</label>
+                  <Input
+                    placeholder="https://github.com/username"
+                    value={formData.githubUrl}
+                    onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
+                    className="h-10 text-sm bg-background font-mono text-xs"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Helps teammates review your code repositories and activity.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-baseline">
+                    <label className="text-xs font-medium text-foreground">Short bio</label>
+                    <span className="text-[11px] text-muted-foreground">{formData.bio.length}/250</span>
+                  </div>
+                  <Textarea
+                    placeholder="Briefly share what you like building, technologies you enjoy working with, or hackathons you are targeting..."
+                    value={formData.bio}
+                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                    maxLength={250}
+                    className="min-h-[88px] text-sm bg-background resize-none"
+                  />
+                </div>
+              </div>
+            </div>
           )}
 
+          {/* STEP 2: SKILLS & PROFICIENCY */}
           {step === 2 && (
-            <motion.div
-              key="step2"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="space-y-6"
-            >
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-foreground">
-                  Your Skills
-                </h2>
-                <p className="text-muted-foreground mt-1">
-                  Select skills you can contribute
-                </p>
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="border-b border-border/60 pb-4">
+                <h2 className="text-base font-semibold">Skills & proficiency</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Select technologies you know. You can specify proficiency for each below.</p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {allSkills.map((skill) => {
-                  const selected = formData.skills.find(
-                    (s) => s.name === skill
-                  );
-                  return (
-                    <button
-                      key={skill}
-                      onClick={() => toggleSkill(skill)}
-                      className="focus:outline-none"
-                    >
-                      <SkillBadge
-                        variant={selected ? "default" : "outline"}
-                        selected={!!selected}
-                        className="cursor-pointer hover:scale-105 transition-transform"
+              {/* Quick Add Skills */}
+              <div className="space-y-2.5">
+                <label className="text-xs font-medium text-muted-foreground">Common skills</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {allSkills.map((skill) => {
+                    const isSelected = formData.skills.some((s) => s.name === skill);
+                    return (
+                      <button
+                        key={skill}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) handleRemoveSkill(skill);
+                          else handleAddSkill(skill);
+                        }}
+                        className={`px-2.5 py-1 rounded-md text-xs transition-colors border ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground border-primary font-medium"
+                            : "bg-background text-foreground border-border hover:bg-muted"
+                        }`}
                       >
                         {skill}
-                        {selected && <Check className="ml-1 h-3 w-3" />}
-                      </SkillBadge>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Custom skill input */}
-              <div className="mt-4 flex gap-2">
-                <Input
-                  value={customSkill}
-                  onChange={(e) => setCustomSkill(e.target.value)}
-                  placeholder="Add custom skill..."
-                  className="h-11"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addCustomSkill();
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-11 w-11 flex-shrink-0"
-                  onClick={addCustomSkill}
-                  disabled={!customSkill.trim()}
-                >
-                  <Plus className="h-5 w-5" />
-                </Button>
+              {/* Custom Skill Input */}
+              <div className="space-y-1.5 pt-2">
+                <label className="text-xs font-medium">Add a skill not listed above</label>
+                <div className="flex gap-2 max-w-sm">
+                  <Input
+                    placeholder="e.g. Rust, Solidity, Docker..."
+                    value={customSkillInput}
+                    onChange={(e) => setCustomSkillInput(e.target.value)}
+                    className="h-9 text-sm bg-background"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddSkill(customSkillInput);
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="h-9 px-3 text-xs"
+                    onClick={() => handleAddSkill(customSkillInput)}
+                    disabled={!customSkillInput.trim()}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Add
+                  </Button>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Can't find your skill? Type it above and press Enter or click +
-              </p>
 
+              {/* Selected Skills List */}
               {formData.skills.length > 0 && (
-                <div className="space-y-4 mt-8">
-                  <h3 className="font-medium text-foreground">
-                    Set your skill levels
-                  </h3>
-                  {formData.skills.map((skill) => (
-                    <div
-                      key={skill.name}
-                      className="flex items-center justify-between p-4 bg-card rounded-xl border border-border"
-                    >
-                      <span className="font-medium">{skill.name}</span>
-                      <div className="flex gap-2">
-                        {(["Beginner", "Intermediate", "Advanced"] as const).map(
-                          (level) => (
+                <div className="space-y-3 pt-4 border-t border-border">
+                  <label className="text-xs font-medium text-foreground">Your selected skills ({formData.skills.length})</label>
+                  <div className="divide-y divide-border/60 rounded-xl border border-border bg-background">
+                    {formData.skills.map((skill) => (
+                      <div key={skill.name} className="flex items-center justify-between px-4 py-3 gap-4">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-medium truncate">{skill.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {(["Beginner", "Intermediate", "Advanced"] as const).map((level) => (
                             <button
                               key={level}
-                              onClick={() => updateSkillLevel(skill.name, level)}
-                              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                              type="button"
+                              onClick={() => handleLevelChange(skill.name, level)}
+                              className={`px-2 py-1 rounded text-[11px] transition-colors ${
                                 skill.level === level
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                  ? "bg-primary text-primary-foreground font-medium"
+                                  : "text-muted-foreground hover:bg-muted"
                               }`}
                             >
                               {level}
                             </button>
-                          )
-                        )}
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSkill(skill.name)}
+                            className="ml-2 p-1 text-muted-foreground hover:text-destructive rounded transition-colors"
+                            title="Remove skill"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
-            </motion.div>
+            </div>
           )}
 
+          {/* STEP 3: PREFERENCES & RATES */}
           {step === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="space-y-8"
-            >
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-foreground">
-                  Availability, Intent & Earning
-                </h2>
-                <p className="text-muted-foreground mt-1">
-                  What are you looking for?
-                </p>
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="border-b border-border/60 pb-4">
+                <h2 className="text-base font-semibold">Preferences & rates</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Let others know what kind of collaborations you are open to.</p>
               </div>
 
-              <div className="space-y-4">
-                <h3 className="font-medium text-foreground">
-                  Available for
-                </h3>
-                <div className="space-y-3">
-                  {availabilityOptions.map((option) => (
-                    <button
-                      key={option.id}
-                      onClick={() => toggleArrayItem("availability", option.id)}
-                      className={`w-full p-4 rounded-xl border text-left flex items-center gap-3 transition-all ${
-                        formData.availability.includes(option.id)
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                    >
-                      <span className="text-2xl">{option.icon}</span>
-                      <div className="flex-1">
-                        <span className="font-medium">{option.label}</span>
-                        {option.earning && (
-                          <span className="ml-2 text-xs text-success font-medium">
-                            Earning enabled
-                          </span>
-                        )}
-                      </div>
-                      {formData.availability.includes(option.id) && (
-                        <Check className="ml-auto h-5 w-5 text-primary" />
-                      )}
-                    </button>
-                  ))}
+              <div className="space-y-3">
+                <label className="text-xs font-medium text-foreground">What are you available for? *</label>
+                <div className="grid gap-2.5">
+                  {[
+                    { id: "learning", label: "Peer learning & study groups", desc: "Skill exchanges, pair programming, and coursework discussions" },
+                    { id: "project", label: "Campus & hackathon projects", desc: "Building MVPs, weekend sprints, or university competitions" },
+                    { id: "paid", label: "Paid freelance & gigs", desc: "Accepting compensated project requests from peers or founders" },
+                  ].map((opt) => {
+                    const isChecked = formData.availability.includes(opt.id);
+                    return (
+                      <label
+                        key={opt.id}
+                        onClick={() => toggleOption("availability", opt.id)}
+                        className={`flex items-start gap-3 p-3.5 rounded-xl border transition-colors cursor-pointer ${
+                          isChecked ? "border-primary bg-primary/[0.03]" : "border-border bg-background hover:bg-muted/30"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          className="mt-0.5 rounded border-border text-primary focus:ring-0 cursor-pointer"
+                        />
+                        <div>
+                          <span className="text-xs font-semibold text-foreground block">{opt.label}</span>
+                          <span className="text-[11px] text-muted-foreground leading-relaxed mt-0.5 block">{opt.desc}</span>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <h3 className="font-medium text-foreground">
-                  Interests
-                </h3>
-                <div className="space-y-3">
-                  {interestOptions.map((option) => (
-                    <button
-                      key={option.id}
-                      onClick={() => toggleArrayItem("interests", option.id)}
-                      className={`w-full p-4 rounded-xl border text-left flex items-center gap-3 transition-all ${
-                        formData.interests.includes(option.id)
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                    >
-                      <span className="text-2xl">{option.icon}</span>
-                      <span className="font-medium">{option.label}</span>
-                      {formData.interests.includes(option.id) && (
-                        <Check className="ml-auto h-5 w-5 text-primary" />
-                      )}
-                    </button>
-                  ))}
+              <div className="space-y-2.5 pt-2">
+                <label className="text-xs font-medium text-foreground">Interests (Optional)</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: "startups", label: "Startups & Ventures" },
+                    { id: "hackathons", label: "Hackathons" },
+                    { id: "college", label: "Academic Research" },
+                  ].map((intOpt) => {
+                    const isSelected = formData.interests.includes(intOpt.id);
+                    return (
+                      <button
+                        key={intOpt.id}
+                        type="button"
+                        onClick={() => toggleOption("interests", intOpt.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-muted-foreground border-border hover:text-foreground"
+                        }`}
+                      >
+                        {intOpt.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Earning range - only shown when paid collaboration is selected */}
-              {isPaidEnabled && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="space-y-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-foreground flex items-center gap-2">
-                      <IndianRupee className="h-4 w-4" />
-                      Expected earning range
-                    </h3>
-                    <span className="text-xs text-muted-foreground">(Private)</span>
+              {/* Freelance salary slider if paid is selected */}
+              {isPaidSelected && (
+                <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3 pt-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-foreground">Expected project rate range</span>
+                    <span className="font-semibold text-emerald-600">
+                      ₹{formData.earningRange[0]} – ₹{formData.earningRange[1]}
+                    </span>
                   </div>
-                  <div className="p-4 bg-card rounded-xl border border-border space-y-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Range</span>
-                      <span className="font-semibold text-foreground">
-                        ₹{formData.earningRange[0]} – ₹{formData.earningRange[1]}
-                      </span>
-                    </div>
-                    <Slider
-                      value={formData.earningRange}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, earningRange: value as [number, number] })
-                      }
-                      min={500}
-                      max={5000}
-                      step={250}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>₹500</span>
-                      <span>₹5,000</span>
-                    </div>
+                  <Slider
+                    value={formData.earningRange}
+                    onValueChange={(val) => setFormData({ ...formData, earningRange: val as [number, number] })}
+                    min={500}
+                    max={5000}
+                    step={250}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>₹500 (Small fix)</span>
+                    <span>₹5,000+ (Full build)</span>
                   </div>
-                </motion.div>
+                </div>
               )}
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
-      </div>
 
-      {/* Bottom button */}
-      <div className="p-6 border-t border-border">
-        {step < 3 ? (
-          <Button
-            onClick={() => setStep(step + 1)}
-            className="w-full h-12 text-base gradient-primary border-0"
-            disabled={!canProceed()}
-          >
-            Continue
-            <ChevronRight className="ml-2 h-5 w-5" />
-          </Button>
-        ) : (
-          <Button
-            onClick={handleFinish}
-            className="w-full h-12 text-base gradient-primary border-0"
-            disabled={!canProceed() || updateProfile.isPending}
-          >
-            {updateProfile.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                Finish Setup
-                <Check className="ml-2 h-5 w-5" />
-              </>
-            )}
-          </Button>
-        )}
-      </div>
+          {/* Action Buttons Footer */}
+          <div className="pt-6 border-t border-border flex items-center justify-between">
+            <div>
+              {step > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setStep(step - 1)}
+                  className="h-9 px-4 text-xs"
+                >
+                  Back
+                </Button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {step < 3 ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setStep(step + 1)}
+                  disabled={!canProceed()}
+                  className="h-9 px-5 text-xs bg-primary text-primary-foreground hover:opacity-90"
+                >
+                  Continue
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleSaveProfile}
+                  disabled={!canProceed() || updateProfile.isPending}
+                  className="h-9 px-6 text-xs bg-primary text-primary-foreground hover:opacity-90 flex items-center gap-1.5"
+                >
+                  {updateProfile.isPending ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save and finish</span>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+
+        </div>
+
+      </main>
     </div>
   );
 }

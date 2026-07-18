@@ -1,17 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ProfileCard } from "@/components/ui/profile-card";
-import { SkillBadge } from "@/components/ui/skill-badge";
-import { ArrowRight, Compass, Loader2, Search, Sparkles, Star, TrendingUp, Users, Zap } from "lucide-react";
+import { ArrowRight, Compass, Loader2, Search, Users, CheckCircle2, MapPin } from "lucide-react";
 import { useProfiles } from "@/hooks/useProfile";
 import { useAuth } from "@/contexts/AuthContext";
-
-const trendingSkills = [
-  { name: "AI/ML", growth: "+24%" },
-  { name: "Web3", growth: "+18%" },
-  { name: "Flutter", growth: "+15%" },
-  { name: "Product Design", growth: "+12%" },
-];
 
 export default function Home() {
   const navigate = useNavigate();
@@ -19,14 +11,13 @@ export default function Home() {
   const { data: profiles, isLoading } = useProfiles();
 
   const currentUserProfile = profiles?.find((p) => p.id === user?.id);
-  const userName = currentUserProfile?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
-
+  const userName = currentUserProfile?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "friend";
   const otherProfiles = profiles?.filter((p) => p.id !== user?.id) || [];
 
   const formattedProfiles = otherProfiles.map((profile) => ({
     id: profile.id,
-    name: profile.full_name || "Anonymous",
-    college: profile.college || "Unknown College",
+    name: profile.full_name || "Student",
+    college: profile.college || "Campus Network",
     skills: profile.skills.map((s) => ({
       name: s.skill_name,
       level: (s.level.charAt(0).toUpperCase() + s.level.slice(1)) as "Beginner" | "Intermediate" | "Advanced",
@@ -38,225 +29,253 @@ export default function Home() {
   }));
 
   const topContributors = [...formattedProfiles]
-    .sort((a, b) => b.points - a.points)
-    .slice(0, 3);
+    .sort((a, b) => (b.trustScore || b.points) - (a.trustScore || a.points))
+    .slice(0, 4);
 
-  const recentSearchedSkills = [
-    ...new Set(formattedProfiles.flatMap((p) => p.skills.map((s) => s.name))),
-  ].slice(0, 4);
+  const recentSkills = [...new Set(formattedProfiles.flatMap((p) => p.skills.map((s) => s.name)))].slice(0, 6);
 
-  const handleViewPortfolio = (id: string) => {
-    navigate(`/profile/${id}`);
-  };
+  const handleViewPortfolio = (id: string) => navigate(`/profile/${id}`);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">Loading campus network...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(108,123,255,0.18),_transparent_50%),radial-gradient(circle_at_100%_20%,_rgba(127,216,255,0.15),_transparent_20%)] pb-24">
-      <div className="mx-auto max-w-6xl px-4 pb-8 pt-4 sm:px-6 lg:px-8">
-        <motion.header
-          initial={{ opacity: 0, y: 16 }}
+    <div className="min-h-screen pb-24 lg:pb-12 bg-background text-foreground">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+
+        {/* Hero Card with Restored Image Banner & Simple Daily Campus Language */}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          className="overflow-hidden rounded-[32px] border border-white/20 bg-gradient-to-br from-[#5F6DFF] via-[#8A5CFF] to-[#50C4E0] p-6 text-white shadow-[0_30px_80px_-35px_rgba(90,93,255,0.7)]"
+          transition={{ duration: 0.35 }}
+          className="relative overflow-hidden rounded-2xl bg-card border border-border shadow-xs grid lg:grid-cols-12"
         >
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm backdrop-blur">
-                <Sparkles className="h-4 w-4" />
-                <span>Collaboration meets learning</span>
-              </div>
-              <h1 className="text-3xl font-semibold sm:text-4xl">
-                Hi, {userName}. Ready to spark better teamwork?
+          {/* Left Text & Search Area */}
+          <div className="p-6 sm:p-8 lg:col-span-7 flex flex-col justify-between z-10 space-y-6">
+            <div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-foreground leading-snug">
+                Hey {userName}, ready to build?
               </h1>
-              <p className="mt-3 max-w-xl text-sm text-white/85 sm:text-base">
-                Discover collaborators, learn meaningful skills, and join projects that elevate your student experience.
+              <p className="mt-2 text-sm text-muted-foreground max-w-md leading-relaxed">
+                Find teammates across Indian college campuses for your next hackathon, startup idea, or final year project.
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="space-y-4 pt-2">
+              {/* Simple Search & Event Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => navigate("/search")}
+                  className="flex-1 flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-left text-sm text-muted-foreground hover:border-foreground/30 transition-colors"
+                >
+                  <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="truncate">Search by tech stack, college, or name...</span>
+                </button>
+                <button
+                  onClick={() => navigate("/events")}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity flex-shrink-0"
+                >
+                  <Compass className="h-4 w-4" />
+                  <span>Campus Events</span>
+                </button>
+              </div>
+
+              {/* Quick Tech Stack Chips */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                <span className="text-xs text-muted-foreground mr-1">Popular tech:</span>
+                {(recentSkills.length > 0 ? recentSkills : ["React", "Python", "UI/UX Design", "Machine Learning", "Flutter"]).slice(0, 5).map((skill) => (
+                  <button
+                    key={skill}
+                    onClick={() => navigate(`/search?skill=${encodeURIComponent(skill)}`)}
+                    className="px-2.5 py-1 rounded-md text-xs bg-muted/60 hover:bg-muted text-foreground font-medium transition-colors border border-border/50"
+                  >
+                    {skill}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Image Feature Area */}
+          <div className="relative lg:col-span-5 min-h-[220px] sm:min-h-[280px] lg:min-h-full overflow-hidden bg-muted">
+            <img
+              src="/collab-hero.png"
+              alt="Students working together on campus"
+              className="absolute inset-0 h-full w-full object-cover object-center"
+            />
+            {/* Subtle gradient overlay for readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent lg:bg-gradient-to-r lg:from-card lg:via-transparent lg:to-transparent opacity-85" />
+            
+            {/* Small simple badge on the image */}
+            <div className="absolute bottom-4 left-4 right-4 lg:left-auto lg:right-4 bg-background/90 backdrop-blur-md p-3 rounded-xl border border-border/80 shadow-sm max-w-[220px]">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 font-bold text-xs flex-shrink-0">
+                  ✓
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground truncate">Verified Students</p>
+                  <p className="text-[10px] text-muted-foreground truncate">Real campus profiles</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Simple Grounded Stats Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { label: "Active peers online", value: formattedProfiles.length || 18, desc: "Ready to join projects right now", icon: Users },
+            { label: "Projects shipped", value: "48+", desc: "Built by teams across campuses", icon: CheckCircle2 },
+            { label: "Partner colleges", value: "15+", desc: "IIT, NIT, BITS & top universities", icon: MapPin },
+          ].map((stat, i) => (
+            <div
+              key={stat.label}
+              className="bg-card rounded-xl p-4 border border-border shadow-xs flex items-start justify-between"
+            >
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
+                <p className="text-xl font-bold text-foreground mt-1">{stat.value}</p>
+                <p className="text-xs text-muted-foreground/80 mt-0.5">{stat.desc}</p>
+              </div>
+              <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
+                <stat.icon className="h-4 w-4" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Main 2-Column Grid */}
+        <div className="grid gap-8 lg:grid-cols-12 items-start">
+
+          {/* Left Column: Recommended peers */}
+          <div className="lg:col-span-8 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-border/60">
+              <div>
+                <h2 className="text-base font-semibold">Teammates looking for projects</h2>
+                <p className="text-xs text-muted-foreground">Peers matching popular campus tech stacks</p>
+              </div>
               <button
                 onClick={() => navigate("/search")}
-                className="flex items-center gap-2 rounded-2xl bg-white/15 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/25"
+                className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
               >
-                <Search className="h-4 w-4" />
-                Explore people
-              </button>
-              <button
-                onClick={() => navigate("/events")}
-                className="flex items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/20"
-              >
-                <Compass className="h-4 w-4" />
-                Browse events
+                <span>Browse all</span>
+                <ArrowRight className="h-3 w-3" />
               </button>
             </div>
-          </div>
 
-          <motion.button
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.08 }}
-            onClick={() => navigate("/search")}
-            className="mt-6 flex w-full items-center gap-3 rounded-[22px] border border-white/20 bg-white/10 px-4 py-3 text-left text-sm text-white/90 shadow-sm backdrop-blur transition hover:bg-white/15"
-          >
-            <Search className="h-5 w-5" />
-            <span>Search skills, projects, or people...</span>
-            <ArrowRight className="ml-auto h-4 w-4" />
-          </motion.button>
-        </motion.header>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-[24px] border border-white/10 bg-white/80 p-5 shadow-sm backdrop-blur">
-            <div className="flex items-center gap-2 text-primary">
-              <Users className="h-4 w-4 text-[#5F6DFF]" />
-              <span className="text-sm font-medium text-foreground">Active profiles</span>
-            </div>
-            <p className="mt-3 text-3xl font-semibold text-foreground">{formattedProfiles.length}</p>
-            <p className="mt-1 text-sm text-muted-foreground">Ready to collaborate across campus.</p>
-          </div>
-          <div className="rounded-[24px] border border-white/10 bg-white/80 p-5 shadow-sm backdrop-blur">
-            <div className="flex items-center gap-2 text-accent">
-              <TrendingUp className="h-4 w-4 text-[#50C4E0]" />
-              <span className="text-sm font-medium text-foreground">Trending skills</span>
-            </div>
-            <p className="mt-3 text-3xl font-semibold text-foreground">{trendingSkills.length}</p>
-            <p className="mt-1 text-sm text-muted-foreground">Skills gaining momentum this week.</p>
-          </div>
-          <div className="rounded-[24px] border border-white/10 bg-white/80 p-5 shadow-sm backdrop-blur">
-            <div className="flex items-center gap-2 text-warning">
-              <Zap className="h-4 w-4 text-[#F8B040]" />
-              <span className="text-sm font-medium text-foreground">Top contributors</span>
-            </div>
-            <p className="mt-3 text-3xl font-semibold text-foreground">{topContributors.length}</p>
-            <p className="mt-1 text-sm text-muted-foreground">High-impact teammates in the network.</p>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <motion.section
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.12 }}
-            className="rounded-[24px] border border-border bg-card p-5 shadow-sm"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">Popular skills</h2>
-                <p className="text-sm text-muted-foreground">The capabilities people are using to launch projects.</p>
+            {formattedProfiles.length > 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {formattedProfiles.slice(0, 6).map((profile) => (
+                  <ProfileCard key={profile.id} {...profile} onViewPortfolio={handleViewPortfolio} />
+                ))}
               </div>
-              <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">Live</span>
-            </div>
+            ) : (
+              <div className="bg-card rounded-xl border border-border p-10 text-center space-y-2">
+                <Users className="h-6 w-6 text-muted-foreground mx-auto opacity-50" />
+                <p className="text-sm font-medium">No other peers listed right now</p>
+                <p className="text-xs text-muted-foreground">Check back once more students set up their profile.</p>
+              </div>
+            )}
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {recentSearchedSkills.map((skill) => (
+            {/* Restored Team Image Feature with Simple Daily Language */}
+            <div className="rounded-xl bg-card border border-border overflow-hidden grid sm:grid-cols-12 shadow-xs">
+              <div className="sm:col-span-7 p-6 flex flex-col justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-foreground">Need a dev or designer for your idea?</h3>
+                  <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                    Whether you're preparing for a weekend hackathon or building your final year project, post a requirement with exactly what tech stack you need.
+                  </p>
+                </div>
                 <button
-                  key={skill}
-                  onClick={() => navigate(`/search?skill=${skill}`)}
-                  className="rounded-full border border-border bg-muted/70 px-3 py-2 text-sm text-foreground transition hover:border-primary/50 hover:bg-primary/10"
+                  onClick={() => navigate("/requests")}
+                  className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
                 >
-                  {skill}
+                  <span>Post a project requirement</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </button>
-              ))}
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              {formattedProfiles.slice(0, 2).map((profile) => (
-                <ProfileCard
-                  key={profile.id}
-                  {...profile}
-                  onViewPortfolio={handleViewPortfolio}
+              </div>
+              <div className="sm:col-span-5 relative min-h-[150px] bg-muted">
+                <img
+                  src="/collab-team.png"
+                  alt="Student peers collaborating"
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
-              ))}
+              </div>
             </div>
-          </motion.section>
-
-          <motion.section
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="rounded-[24px] border border-border bg-card p-5 shadow-sm"
-          >
-            <div className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-warning fill-warning" />
-              <h2 className="text-lg font-semibold text-foreground">Top contributors</h2>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              {topContributors.map((profile, index) => (
-                <motion.div
-                  key={profile.id}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.22 + index * 0.08 }}
-                  onClick={() => handleViewPortfolio(profile.id)}
-                  className="flex items-center gap-3 rounded-2xl border border-border bg-background/70 p-3 transition hover:border-primary/50 hover:bg-primary/5"
-                >
-                  <div
-                    className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${
-                      index === 0
-                        ? "bg-warning/20 text-warning"
-                        : index === 1
-                        ? "bg-muted text-muted-foreground"
-                        : "bg-accent/20 text-accent"
-                    }`}
-                  >
-                    #{index + 1}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="truncate font-medium text-foreground">{profile.name}</h3>
-                    <p className="truncate text-sm text-muted-foreground">{profile.college}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-sm font-semibold text-foreground">
-                    <Star className="h-4 w-4 fill-warning text-warning" />
-                    {profile.points}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.section>
-        </div>
-
-        <motion.section
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.28 }}
-          className="mt-6 rounded-[24px] border border-border bg-card p-5 shadow-sm"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">Discover collaborators</h2>
-              <p className="text-sm text-muted-foreground">Browse inspiring profiles and connect with people who match your goals.</p>
-            </div>
-            <button
-              onClick={() => navigate("/search")}
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-2 text-xs font-semibold text-foreground transition hover:border-primary/60 hover:bg-primary/10"
-            >
-              <ArrowRight className="h-3.5 w-3.5" />
-              Explore more
-            </button>
           </div>
 
-          {formattedProfiles.length > 0 ? (
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              {formattedProfiles.map((profile) => (
-                <ProfileCard
-                  key={profile.id}
-                  {...profile}
-                  onViewPortfolio={handleViewPortfolio}
-                />
-              ))}
+          {/* Right Column: Top scores */}
+          <div className="lg:col-span-4 space-y-4">
+            <div className="bg-card rounded-xl border border-border p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
+                <div>
+                  <span className="text-xs font-semibold block">Top trusted peers</span>
+                  <span className="text-[10px] text-muted-foreground block">Verified by project leaders</span>
+                </div>
+                <button
+                  onClick={() => navigate("/leaderboard")}
+                  className="text-[11px] text-primary font-medium hover:underline"
+                >
+                  View rank
+                </button>
+              </div>
+
+              <div className="divide-y divide-border/50">
+                {topContributors.length > 0 ? (
+                  topContributors.map((profile, idx) => (
+                    <div
+                      key={profile.id}
+                      onClick={() => handleViewPortfolio(profile.id)}
+                      className="py-2.5 flex items-center justify-between gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-xs font-mono text-muted-foreground w-4 text-center font-bold">
+                          {idx + 1}.
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium truncate">{profile.name}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{profile.college}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                        <span className="text-xs font-semibold">
+                          {profile.trustScore ? profile.trustScore.toFixed(1) : profile.points}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground py-4 text-center">No scores recorded yet.</p>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-dashed border-border bg-background/70 py-12 text-center">
-              <p className="text-muted-foreground">No other collaborators yet. Be the first to complete your profile.</p>
+
+            {/* Simple Daily Help Box */}
+            <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-2">
+              <h4 className="text-xs font-semibold text-foreground">Want more invites?</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Make sure you add your GitHub link and at least 3 skills like React, Python, or Figma on your setup page.
+              </p>
+              <button
+                onClick={() => navigate("/setup")}
+                className="text-xs font-semibold text-primary hover:underline block pt-1"
+              >
+                Complete profile setup &rarr;
+              </button>
             </div>
-          )}
-        </motion.section>
+          </div>
+
+        </div>
+
       </div>
     </div>
   );

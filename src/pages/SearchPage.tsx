@@ -11,6 +11,8 @@ import {
   X,
   Loader2,
   ArrowUpDown,
+  Users,
+  Sparkles,
 } from "lucide-react";
 import { SearchFilters } from "@/components/SearchFilters";
 import { useProfiles } from "@/hooks/useProfile";
@@ -25,12 +27,14 @@ import {
 } from "@/components/ui/select";
 
 const popularSkills = [
-  "React",
-  "Python",
+  "React & Next.js",
+  "Python & AI",
   "UI/UX Design",
   "Machine Learning",
-  "Flutter",
-  "Node.js",
+  "Flutter Mobile",
+  "Node.js Backend",
+  "Figma",
+  "TypeScript",
 ];
 
 export default function SearchPage() {
@@ -64,7 +68,7 @@ export default function SearchPage() {
       .map((profile) => ({
         id: profile.id,
         name: profile.full_name || "Anonymous",
-        college: profile.college || "Unknown",
+        college: profile.college || "Unknown College",
         skills: profile.skills.map((s) => ({
           name: s.skill_name,
           level: (s.level.charAt(0).toUpperCase() + s.level.slice(1)) as "Beginner" | "Intermediate" | "Advanced",
@@ -86,7 +90,8 @@ export default function SearchPage() {
       const matchesQuery =
         !query ||
         profile.skills.some((skill) => fuzzyMatch(query, skill.name)) ||
-        fuzzyMatch(query, profile.name);
+        fuzzyMatch(query, profile.name) ||
+        fuzzyMatch(query, profile.college);
 
       const matchesLevel =
         filters.level === "All Levels" ||
@@ -131,185 +136,175 @@ export default function SearchPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring" }}
-        >
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </motion.div>
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground font-medium">Searching talent directory...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Search header */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-4"
-      >
-        <div className="flex gap-3">
-          <div className="flex-1 relative">
-            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+    <div className="min-h-screen bg-background pb-24 lg:pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        {/* Header & Search Bar section */}
+        <div className="bg-card rounded-2xl p-6 sm:p-8 border border-border shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">
+                Find peers across campus
+              </h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Search students by skill, name, or university.
+              </p>
+            </div>
+
+            {/* Sort & Filter Controls */}
+            <div className="flex items-center gap-2.5 self-start sm:self-auto">
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as "relevance" | "trust_score")}>
+                <SelectTrigger className="w-[140px] h-10 text-xs bg-background">
+                  <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="relevance">Sort: Relevance</SelectItem>
+                  <SelectItem value="trust_score">Sort: Trust Score</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className={`h-10 px-3.5 text-xs font-medium gap-2 bg-background transition-all ${
+                  hasActiveFilters ? "border-primary text-primary bg-primary/[0.04]" : ""
+                }`}
+                onClick={() => setIsFilterOpen(true)}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span>Filters</span>
+                {hasActiveFilters && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Primary Search Input */}
+          <div className="relative">
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search skills or people..."
-              className="pl-11 h-12 pr-10"
+              placeholder="Search by skills (e.g. React, Python), college, or student name..."
+              className="pl-12 pr-11 h-13 text-base bg-background border-border/80 rounded-2xl shadow-xs focus:border-primary focus:ring-1 focus:ring-primary transition-all"
               autoFocus
             />
             <AnimatePresence>
               {query && (
                 <motion.button
-                  initial={{ opacity: 0, scale: 0.5 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.5 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
                   onClick={() => setQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-muted flex items-center justify-center"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 h-7 w-7 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <X className="h-4 w-4 text-muted-foreground" />
+                  <X className="h-4 w-4" />
                 </motion.button>
               )}
             </AnimatePresence>
           </div>
 
-          <motion.div whileTap={{ scale: 0.9 }}>
-            <Button
-              variant="outline"
-              size="icon"
-              className={`h-12 w-12 flex-shrink-0 transition-all ${
-                hasActiveFilters ? "border-primary text-primary shadow-md" : ""
-              }`}
-              onClick={() => setIsFilterOpen(true)}
-            >
-              <SlidersHorizontal className="h-5 w-5" />
-            </Button>
-          </motion.div>
+          {/* Active Filter Badges */}
+          <AnimatePresence>
+            {hasActiveFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex items-center gap-2 flex-wrap pt-2 border-t border-border/60"
+              >
+                <span className="text-xs font-medium text-muted-foreground">Active filters:</span>
+                {filters.level !== "All Levels" && (
+                  <SkillBadge variant="default" size="sm" className="gap-1.5">
+                    <span>Level: {filters.level}</span>
+                    <button onClick={() => setFilters({ ...filters, level: "All Levels" })} className="hover:opacity-75">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </SkillBadge>
+                )}
+                {filters.availability !== "All" && (
+                  <SkillBadge variant="default" size="sm" className="gap-1.5">
+                    <span>Availability: {filters.availability}</span>
+                    <button onClick={() => setFilters({ ...filters, availability: "All" })} className="hover:opacity-75">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </SkillBadge>
+                )}
+                {filters.college && (
+                  <SkillBadge variant="default" size="sm" className="gap-1.5 max-w-[220px]">
+                    <span className="truncate">College: {filters.college}</span>
+                    <button onClick={() => setFilters({ ...filters, college: "" })} className="hover:opacity-75 flex-shrink-0">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </SkillBadge>
+                )}
+                <button
+                  onClick={() => setFilters({ level: "All Levels", availability: "All", college: "" })}
+                  className="text-xs text-muted-foreground hover:text-foreground underline ml-2"
+                >
+                  Clear all
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Popular Skill Chips */}
+          {!query && !hasActiveFilters && (
+            <div className="flex items-center gap-2 flex-wrap pt-1">
+              <span className="text-xs text-muted-foreground font-medium">Quick search:</span>
+              {popularSkills.map((skill) => (
+                <button
+                  key={skill}
+                  onClick={() => setQuery(skill.split(" ")[0])}
+                  className="rounded-xl border border-border/60 bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all"
+                >
+                  {skill}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Active filter badges */}
-        <AnimatePresence>
-          {hasActiveFilters && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="flex gap-2 overflow-x-auto mt-3 pb-1 -mx-4 px-4"
-            >
-              {filters.level !== "All Levels" && (
-                <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-                  <SkillBadge variant="default" className="flex-shrink-0">
-                    {filters.level}
-                    <button onClick={() => setFilters({ ...filters, level: "All Levels" })} className="ml-1">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </SkillBadge>
-                </motion.div>
-              )}
-              {filters.availability !== "All" && (
-                <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.05 }}>
-                  <SkillBadge variant="default" className="flex-shrink-0">
-                    {filters.availability}
-                    <button onClick={() => setFilters({ ...filters, availability: "All" })} className="ml-1">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </SkillBadge>
-                </motion.div>
-              )}
-              {filters.college && (
-                <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }}>
-                  <SkillBadge variant="default" className="flex-shrink-0 max-w-[200px]">
-                    <span className="truncate">{filters.college}</span>
-                    <button onClick={() => setFilters({ ...filters, college: "" })} className="ml-1 flex-shrink-0">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </SkillBadge>
-                </motion.div>
-              )}
-            </motion.div>
+        {/* Filter Sheet Modal */}
+        <SearchFilters
+          isOpen={isFilterOpen}
+          onOpenChange={setIsFilterOpen}
+          filters={filters}
+          onFiltersChange={setFilters}
+          colleges={colleges}
+        />
+
+        {/* Results Counter */}
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs font-medium text-muted-foreground">
+            Showing <span className="font-bold text-foreground">{filteredProfiles.length}</span> verified student{filteredProfiles.length !== 1 ? "s" : ""}
+          </p>
+          {query && (
+            <p className="text-xs text-muted-foreground">
+              Results for "<span className="font-semibold text-foreground">{query}</span>"
+            </p>
           )}
-        </AnimatePresence>
+        </div>
 
-        {/* Popular skills */}
-        <AnimatePresence>
-          {!query && !hasActiveFilters && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="flex gap-2 overflow-x-auto mt-4 pb-2 -mx-4 px-4"
-            >
-              {popularSkills.map((skill, i) => (
-                <motion.button
-                  key={skill}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.04, type: "spring", stiffness: 400, damping: 20 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setQuery(skill)}
-                  className="flex-shrink-0"
-                >
-                  <SkillBadge variant="secondary" className="cursor-pointer">
-                    {skill}
-                  </SkillBadge>
-                </motion.button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* Filter Sheet */}
-      <SearchFilters
-        isOpen={isFilterOpen}
-        onOpenChange={setIsFilterOpen}
-        filters={filters}
-        onFiltersChange={setFilters}
-        colleges={colleges}
-      />
-
-      {/* Results */}
-      <div className="px-4 py-6">
-        <AnimatePresence mode="wait">
-          {(query || hasActiveFilters) && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center justify-between mb-4"
-            >
-              <motion.p
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-sm text-muted-foreground"
-              >
-                {filteredProfiles.length} result
-                {filteredProfiles.length !== 1 ? "s" : ""} found
-              </motion.p>
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as "relevance" | "trust_score")}>
-                <SelectTrigger className="w-[140px] h-9 text-xs">
-                  <ArrowUpDown className="h-3 w-3 mr-1" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="relevance">Relevance</SelectItem>
-                  <SelectItem value="trust_score">Trust Score</SelectItem>
-                </SelectContent>
-              </Select>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Responsive Grid: 1 col on mobile, 2 on tablet, 3 on laptop, 4 on wide screen */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredProfiles.map((profile, index) => (
             <motion.div
               key={profile.id}
-              initial={{ opacity: 0, y: 20, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ delay: index * 0.04, type: "spring", stiffness: 300, damping: 25 }}
-              whileHover={{ y: -3, boxShadow: "0 8px 25px -8px hsl(var(--primary) / 0.12)" }}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04 }}
             >
               <ProfileCard
                 {...profile}
@@ -319,26 +314,35 @@ export default function SearchPage() {
           ))}
         </div>
 
+        {/* Empty state */}
         {filteredProfiles.length === 0 && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="text-center py-12"
+            className="bg-card rounded-3xl border border-border p-12 text-center max-w-md mx-auto my-8 shadow-xs"
           >
-            <motion.div
-              animate={{ y: [0, -6, 0] }}
-              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-              className="h-20 w-20 rounded-full bg-muted mx-auto flex items-center justify-center mb-4"
-            >
-              <SearchIcon className="h-8 w-8 text-muted-foreground" />
-            </motion.div>
-            <h3 className="font-semibold text-foreground mb-2">No results found</h3>
-            <p className="text-muted-foreground text-sm">
-              Try adjusting your filters or search for different skills
+            <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4 text-muted-foreground">
+              <Users className="h-7 w-7" />
+            </div>
+            <h3 className="font-bold text-foreground text-base mb-1">No matching profiles found</h3>
+            <p className="text-muted-foreground text-xs leading-relaxed mb-6">
+              We couldn't find any student profiles matching "{query || 'your filters'}". Try broadening your search or resetting active filters.
             </p>
+            <div className="flex justify-center gap-2">
+              {query && (
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setQuery("")}>
+                  Clear search query
+                </Button>
+              )}
+              {hasActiveFilters && (
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setFilters({ level: "All Levels", availability: "All", college: "" })}>
+                  Reset all filters
+                </Button>
+              )}
+            </div>
           </motion.div>
         )}
+
       </div>
     </div>
   );

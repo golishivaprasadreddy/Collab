@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { MiniDashboard } from "@/components/MiniDashboard";
-import { Settings, Clock, AlertCircle } from "lucide-react";
+import { Settings, Clock, AlertCircle, Compass, Users, GitPullRequest, Trophy, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
@@ -12,26 +12,11 @@ import { useActiveCollaborations } from "@/hooks/useCollaborations";
 import { useEvents } from "@/hooks/useEvents";
 import { Badge } from "@/components/ui/badge";
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 24, scale: 0.96 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      delay: i * 0.08,
-      type: "spring" as const,
-      stiffness: 260,
-      damping: 22,
-    },
-  }),
-};
-
 const quickActions = [
-  { icon: "🔍", title: "Find Collaborators", subtitle: "Search by skills", path: "/search" },
-  { icon: "🏆", title: "Events", subtitle: "Hackathons & more", path: "/events" },
-  { icon: "📥", title: "View Requests", subtitle: "Manage collaborations", path: "/requests" },
-  { icon: "🏅", title: "Leaderboard", subtitle: "See top performers", path: "/leaderboard" },
+  { icon: Users, label: "Explore Directory", desc: "Browse peers", path: "/search", color: "text-blue-500 bg-blue-500/10" },
+  { icon: Compass, label: "Campus Events", desc: "Hackathons & meets", path: "/events", color: "text-purple-500 bg-purple-500/10" },
+  { icon: GitPullRequest, label: "Project Requests", desc: "Open collaboration invites", path: "/requests", color: "text-emerald-500 bg-emerald-500/10" },
+  { icon: Trophy, label: "Leaderboard", desc: "Top trust scores", path: "/leaderboard", color: "text-amber-500 bg-amber-500/10" },
 ];
 
 function DeadlineAlerts() {
@@ -68,67 +53,57 @@ function DeadlineAlerts() {
   if (urgentEvents.length === 0 && pendingTasks.length === 0) return null;
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.15, type: "spring", stiffness: 260, damping: 22 }}
-      className="space-y-2"
-    >
-      <h3 className="font-semibold text-foreground flex items-center gap-2">
-        <motion.div animate={{ rotate: [0, -10, 10, -10, 0] }} transition={{ duration: 0.5, delay: 0.5 }}>
-          <AlertCircle className="h-4 w-4 text-warning" />
-        </motion.div>
-        Alerts & Reminders
-      </h3>
+    <div className="bg-card rounded-2xl border border-border p-5 shadow-xs space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-amber-500" />
+          <span>Active Alerts</span>
+        </h3>
+        <span className="text-xs text-muted-foreground">{urgentEvents.length + pendingTasks.length} items</span>
+      </div>
+
       <div className="space-y-2">
         <AnimatePresence>
-          {urgentEvents.map((event, i) => (
-            <motion.div
+          {urgentEvents.map((event) => (
+            <div
               key={event.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.06, type: "spring", stiffness: 300, damping: 25 }}
-              whileHover={{ scale: 1.01, x: 4 }}
-              whileTap={{ scale: 0.98 }}
               onClick={() => navigate("/events")}
-              className="flex items-center gap-3 p-3 bg-warning/5 border border-warning/20 rounded-xl cursor-pointer hover:bg-warning/10 transition-colors"
+              className="flex items-center justify-between p-3 rounded-xl border border-border/80 bg-background hover:border-amber-500/40 cursor-pointer transition-all"
             >
-              <Clock className="h-4 w-4 text-warning flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{event.title}</p>
-                <p className="text-xs text-muted-foreground">Registration deadline</p>
+              <div className="flex items-center gap-3 min-w-0">
+                <Clock className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground truncate">{event.title}</p>
+                  <p className="text-[11px] text-muted-foreground">Registration closing soon</p>
+                </div>
               </div>
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.3 + i * 0.06 }}>
-                <Badge variant="outline" className="text-[10px] text-warning border-warning/30">
-                  {event.daysLeft}d left
-                </Badge>
-              </motion.div>
-            </motion.div>
+              <Badge variant="outline" className="text-[10px] font-medium text-amber-600 border-amber-500/30 bg-amber-500/5">
+                {event.daysLeft}d left
+              </Badge>
+            </div>
           ))}
-          {pendingTasks.map((task, i) => (
-            <motion.div
+
+          {pendingTasks.map((task) => (
+            <div
               key={task.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: (urgentEvents.length + i) * 0.06, type: "spring", stiffness: 300, damping: 25 }}
-              whileHover={{ scale: 1.01, x: 4 }}
-              whileTap={{ scale: 0.98 }}
               onClick={() => navigate(`/collaboration/${task.id}`)}
-              className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-xl cursor-pointer hover:bg-primary/10 transition-colors"
+              className="flex items-center justify-between p-3 rounded-xl border border-border/80 bg-background hover:border-primary/40 cursor-pointer transition-all"
             >
-              <AlertCircle className="h-4 w-4 text-primary flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
-                <p className="text-xs text-muted-foreground">Active collaboration</p>
+              <div className="flex items-center gap-3 min-w-0">
+                <AlertCircle className="h-4 w-4 text-primary flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground truncate">{task.title}</p>
+                  <p className="text-[11px] text-muted-foreground">Active collaboration</p>
+                </div>
               </div>
-              <Badge variant="outline" className="text-[10px]">
+              <Badge variant="outline" className="text-[10px] font-medium">
                 {task.status}
               </Badge>
-            </motion.div>
+            </div>
           ))}
         </AnimatePresence>
       </div>
-    </motion.section>
+    </div>
   );
 }
 
@@ -137,7 +112,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { data: profile } = useProfile();
 
-  const userName = profile?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
+  const userName = profile?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "Student";
   const initials = profile?.full_name
     ?.split(" ")
     .map((n) => n[0])
@@ -145,116 +120,128 @@ export default function Dashboard() {
     .toUpperCase() || "?";
 
   return (
-    <div className="min-h-screen bg-background pb-4">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 200, damping: 20 }}
-        className="gradient-hero px-6 pt-12 pb-8 rounded-b-3xl"
-      >
-        <div className="flex items-center justify-between">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 20 }}
-            className="flex items-center gap-4"
-          >
+    <div className="min-h-screen bg-background pb-24 lg:pb-12 text-foreground">
+      {/* Clean Header */}
+      <div className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 min-w-0">
             <MiniDashboard userId={user?.id}>
-              <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
-                <Avatar
-                  className="h-14 w-14 ring-2 ring-primary-foreground/20 cursor-pointer"
-                  onClick={() => navigate("/portfolio")}
-                >
-                  <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || ""} />
-                  <AvatarFallback className="bg-primary-foreground/20 text-primary-foreground font-semibold">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-              </motion.div>
+              <Avatar
+                className="h-10 w-10 ring-1 ring-border hover:ring-primary/40 transition-all cursor-pointer flex-shrink-0"
+                onClick={() => navigate("/portfolio")}
+              >
+                <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || ""} />
+                <AvatarFallback className="bg-muted text-foreground font-medium text-xs">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
             </MiniDashboard>
-            <div>
-              <motion.h1
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15, type: "spring" }}
-                className="text-xl font-bold text-primary-foreground"
-              >
-                Hi, {userName} 👋
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.25 }}
-                className="text-primary-foreground/80 text-sm"
-              >
-                Welcome back to your dashboard
-              </motion.p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-semibold text-foreground truncate">
+                  {userName}'s Workspace
+                </h1>
+                <span className="inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-[10px] font-medium text-foreground border border-border">
+                  Verified
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground truncate">
+                {profile?.college || "Campus Network"}
+              </p>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex items-center gap-2"
-          >
+          <div className="flex items-center gap-2.5 flex-shrink-0">
             <NotificationBell />
-            <motion.button
-              whileHover={{ scale: 1.1, rotate: 45 }}
-              whileTap={{ scale: 0.9 }}
+            <button
               onClick={() => navigate("/settings")}
-              className="h-10 w-10 rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center text-primary-foreground"
+              className="h-9 w-9 rounded-lg border border-border bg-background hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              title="Settings"
             >
-              <Settings className="h-5 w-5" />
-            </motion.button>
-          </motion.div>
+              <Settings className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-      </motion.div>
+      </div>
 
-      <div className="px-4 pt-6 space-y-6">
-        {/* Quick Actions (Events, Leaderboard, etc.) — moved above stats */}
-        <motion.section className="grid grid-cols-2 gap-3">
-          {quickActions.map((action, i) => (
-            <motion.button
+      {/* Main Content Layout */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        {/* Quick Actions Bar */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {quickActions.map((action) => (
+            <div
               key={action.path}
-              custom={i}
-              initial="hidden"
-              animate="visible"
-              variants={cardVariants}
-              whileHover={{ y: -4, boxShadow: "0 8px 25px -8px hsl(var(--primary) / 0.15)" }}
-              whileTap={{ scale: 0.96 }}
               onClick={() => navigate(action.path)}
-              className="bg-card rounded-xl p-4 border border-border text-left hover:border-primary/50 transition-colors"
+              className="bg-card rounded-xl p-3.5 border border-border shadow-xs hover:border-border/80 transition-all cursor-pointer group flex items-start gap-3"
             >
-              <motion.span
-                className="text-2xl block"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.3 + i * 0.08, type: "spring", stiffness: 400, damping: 15 }}
-              >
-                {action.icon}
-              </motion.span>
-              <p className="font-medium text-foreground mt-2">{action.title}</p>
-              <p className="text-xs text-muted-foreground">{action.subtitle}</p>
-            </motion.button>
+              <div className={`h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 ${action.color}`}>
+                <action.icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors leading-snug truncate">
+                  {action.label}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  {action.desc}
+                </p>
+              </div>
+            </div>
           ))}
-        </motion.section>
+        </div>
 
-        {/* Stats Grid */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, type: "spring", stiffness: 260, damping: 22 }}
-        >
-          <DashboardStats />
-        </motion.section>
-
-        {/* Deadline & Progress Alerts */}
+        {/* Alerts section */}
         <DeadlineAlerts />
 
-        {/* Activity Feed */}
-        <ActivityFeed />
+        {/* Two-Column Grid */}
+        <div className="grid gap-6 lg:grid-cols-12 items-start">
+          
+          {/* Stats overview */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-card rounded-2xl border border-border p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                <h3 className="font-semibold text-sm">Your activity & points</h3>
+                <button
+                  onClick={() => navigate("/portfolio")}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  View profile &rarr;
+                </button>
+              </div>
+              <DashboardStats />
+            </div>
+
+            {/* Simple Create Request Box */}
+            <div className="bg-card rounded-2xl border border-border p-5 flex flex-col justify-between space-y-4">
+              <div>
+                <h4 className="font-semibold text-sm">Need teammates?</h4>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Post a collaboration request and invite peers across campus with specific skills.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate("/requests")}
+                className="flex items-center justify-between w-full p-3 rounded-xl bg-muted/60 hover:bg-muted border border-border/80 text-xs font-semibold transition-all"
+              >
+                <span>Post a request</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Activity Feed Column */}
+          <div className="lg:col-span-7">
+            <div className="bg-card rounded-2xl border border-border p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                <h3 className="font-semibold text-sm">Recent campus updates</h3>
+                <span className="text-xs text-muted-foreground">Live activity</span>
+              </div>
+              <ActivityFeed />
+            </div>
+          </div>
+
+        </div>
+
       </div>
     </div>
   );
