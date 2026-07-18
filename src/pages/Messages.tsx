@@ -4,13 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePresence } from "@/contexts/PresenceContext";
-import {
-  useConversations,
-  useMessages,
-  useSendMessage,
-  useBroadcastMessage,
-} from "@/hooks/useCollaborations";
+import { useConversations, useMessages, useSendMessage } from "@/hooks/useMessages";
 import {
   Send,
   ArrowLeft,
@@ -24,25 +18,21 @@ import {
   Pin,
   PinOff,
   X,
-  SlidersHorizontal,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { MessageBubble } from "@/components/chat/MessageBubble";
-import { PaymentSplitRequest } from "@/components/chat/PaymentSplitRequest";
-import { TypingIndicator } from "@/components/chat/TypingIndicator";
-import { useTypingStatus } from "@/hooks/useTypingStatus";
+import { MessageBubble } from "@/components/messages/MessageBubble";
+import { PaymentSplitRequest } from "@/components/messages/PaymentSplitRequest";
+import { TypingIndicator } from "@/components/messages/TypingIndicator";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useToast } from "@/hooks/use-toast";
 import { moderateContent } from "@/utils/contentModeration";
-import { ViolationWarning } from "@/components/chat/ViolationWarning";
-import { PenaltyBanner } from "@/components/chat/PenaltyBanner";
-import { ChatRestricted } from "@/components/chat/ChatRestricted";
+import { ViolationWarning, PenaltyBanner, ChatRestricted } from "@/components/messages/ViolationWarning";
 import {
-  useUserPenalty,
+  useActivePenalty,
   useRecordViolation,
   useCanSendMessages,
-} from "@/hooks/useModeration";
+} from "@/hooks/useContentModeration";
 import {
   Sheet,
   SheetContent,
@@ -51,13 +41,13 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  useGroupConversations,
+  useProjectGroups,
   useGroupMessages,
-  useMarkGroupAsRead,
+  useBroadcastToGroup,
   type ProjectGroup,
-} from "@/hooks/useGroupChat";
-import { usePinnedMessages } from "@/hooks/usePinnedMessages";
-import { supabase } from "@/integrations/supabase/client";
+} from "@/hooks/useProjectGroups";
+import { useGroupUnread } from "@/hooks/useGroupUnread";
+import { usePinnedMessages, usePinMessage, useUnpinMessage } from "@/hooks/usePinnedMessages";
 
 export default function Messages() {
   const { user } = useAuth();
@@ -71,36 +61,33 @@ export default function Messages() {
   const [violationMessage, setViolationMessage] = useState<string | null>(null);
   const [showPinned, setShowPinned] = useState(false);
 
-  const { data: penalty, isLoading: penaltyLoading } = useUserPenalty(user?.id);
-  const { canSend } = useCanSendMessages(user?.id);
+  const { data: penalty, isLoading: penaltyLoading } = useActivePenalty();
+  const { canSend } = useCanSendMessages();
   const recordViolation = useRecordViolation();
 
   const {
     conversations,
     isLoading: loadingConvos,
     markMessagesAsRead,
-  } = useConversations(user?.id);
-  const { messages, isLoading: loadingMessages } = useMessages(selectedConvoId);
+  } = useConversations();
+  const { messages, isLoading: loadingMessages } = useMessages(selectedConvoId || undefined);
   const sendMessage = useSendMessage();
 
-  const { isPartnerTyping, startTyping, stopTyping } = useTypingStatus(
-    selectedConvoId || undefined,
-    user?.id
+  const { isPartnerTyping, startTyping, stopTyping } = useTypingIndicator(
+    selectedConvoId || undefined
   );
 
-  const { groups, unreadCounts } = useGroupConversations(user?.id);
+  const { data: groups = [] } = useProjectGroups();
+  const { unreadCounts, markGroupRead } = useGroupUnread(groups);
   const selectedGroup = groups.find((g) => g.signature === selectedGroupSig);
-  const { messages: groupMessages, isLoading: loadingGroupMessages } =
+  const { data: groupMessages = [], isLoading: loadingGroupMessages } =
     useGroupMessages(selectedGroup ? selectedGroup.collaborationIds : []);
-  const broadcastMessage = useBroadcastMessage();
-  const markGroupRead = useMarkGroupAsRead(user?.id);
+  const broadcastMessage = useBroadcastToGroup();
 
-  const {
-    pinnedMessages,
-    pinnedMessageIds,
-    pinMessage,
-    unpinMessage,
-  } = usePinnedMessages(selectedConvoId);
+  const { data: pinnedMessages = [] } = usePinnedMessages(selectedConvoId || undefined);
+  const pinMessage = usePinMessage();
+  const unpinMessage = useUnpinMessage();
+  const pinnedMessageIds = new Set(pinnedMessages.map((p) => p.message_id));
 
   const activeConversations = conversations.filter((c) => c.status !== "completed");
   const archivedConversations = conversations.filter((c) => c.status === "completed");
@@ -457,12 +444,12 @@ export default function Messages() {
                     <div key={pin.id} className="flex items-start gap-2 p-2 rounded-lg bg-muted/50 text-xs">
                       <Pin className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-primary/80 text-[11px]">{pin.sender_profile?.full_name || "Unknown"}</p>
-                        <p className="text-foreground truncate">{pin.message?.content}</p>
+                        <p className="font-semibold text-primary/80 text-[11px]">Pinned Message</p>
+                        <p className="text-foreground truncate">{pin.message_id}</p>
                       </div>
                       {!isArchivedChat && (
                         <button
-                          onClick={() => pin.message?.id && handlePinToggle(pin.message.id)}
+                          onClick={() => pin.message_id && handlePinToggle(pin.message_id)}
                           className="text-muted-foreground hover:text-destructive flex-shrink-0"
                         >
                           <PinOff className="h-3.5 w-3.5" />
@@ -569,7 +556,7 @@ export default function Messages() {
   return (
     <div className="min-h-screen bg-background pb-24 lg:pb-0 flex flex-col lg:flex-row h-screen overflow-hidden">
       
-      {/* Left Column: Conversations Sidebar (full screen on mobile when nothing selected, fixed w-96 on desktop) */}
+      {/* Left Column: Conversations Sidebar */}
       <div className={`w-full lg:w-96 flex-shrink-0 flex flex-col border-r border-border bg-card h-full ${
         (selectedConvoId || selectedGroupSig) ? "hidden lg:flex" : "flex"
       }`}>
